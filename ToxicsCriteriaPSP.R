@@ -5,13 +5,16 @@
 #Script originally created by Peter Bryant
 #Modified for github by Julia Crown
 
+#install.packages("plyr")
+#install.packages("Hmisc")
+
 require(plyr)
 require(Hmisc)
 require(reshape2)
 require(stringr)
 options('scipen' = 100) #suppress scientific notation
 new.folder <- dir.create(paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), sep="")) 
-outpath <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
+outpath.criteria <- paste("\\\\Deqhq1\\PSP\\Rscripts\\Criteria\\",Sys.Date(), "\\", sep="") 
 
 #The file "Criteria.csv" is found in this github repository
 #The file "Criteria.csv" NO LONGER contains the replacements due to DEQ's 4/18/14 update of Table 30 (checked 8/21/14 by JCrown).  
@@ -78,162 +81,198 @@ criteria.values[criteria.values$Pollutant == "Endosulfan II", "Table 30 Toxic Su
 criteria.values[criteria.values$Pollutant == "Endosulfan I", "Table 30 Toxic Substances - Saltwater Chronic"] <- "0.0087"
 criteria.values[criteria.values$Pollutant == "Endosulfan II", "Table 30 Toxic Substances - Saltwater Chronic"] <- "0.0087"
 
+#The Table 30 DDT also applies to (the sum of) DDE and DDD:
+criteria.values[criteria.values$Pollutant == "4,4`-DDD", "Table 30 Toxic Substances - Freshwater Chronic"] <- "0.001"
+criteria.values[criteria.values$Pollutant == "4,4`-DDE", "Table 30 Toxic Substances - Freshwater Chronic"] <- "0.001"
 
-#THIS IS A PLACEHOLDER...
-#Dave Farrer's fipronil degredates take on parent compound value
-#"*Human health benchmark for parent compound used as surrogate in absence of other source of benchmark for environmental degredate or formulation" -- DFarrer PSP Benchmarks List 5 8 2014.xlsx
-#min.criteria[min.criteria$Pollutant == "MB46136 Fipronil degradate", "criteria.minimum.criteria.benchmark.value"] <- "0.1"
 
-#This file may not reflect the most current EPA OPP or OW benchmarks, and we do know there were changes to the benchmarks since the last known download date.  
+#EPA's OPP benchmarks update as of 5/14/13####
+#Not using new atrazine/simazine/desethylatrazine/deisopropylatrazine until we discuss at WQPMT on 12/16/14
+#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "min.EPA.criteria"] <- "0.001"
+#min.criteria[min.criteria$criteria.Pollutant == "Atrazine", "criteria.minimum.criteria.benchmark.value"] <- "0.001"
 
-OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
-#criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
+#Post WQPMT discussion on 12/16/14.  Not implementing these changes yet, except as "proposed" dashed line on the graphs.
+#min.criteria[min.criteria$criteria.Pollutant == "Simazine", "min.EPA.criteria"] <- "2.24"
+#min.criteria[min.criteria$criteria.Pollutant == "Simazine", "criteria.minimum.criteria.benchmark.value"] <- "2.24"
 
-#merge OHA.HH.criteria into criteria.values
-criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+#criteria.values[criteria.values$Pollutant == "Desethylatrazine", "Pollutant"] <- "Triazine DEA degradate"
+#criteria.values[criteria.values$Pollutant == "Deisopropylatrazine", "Pollutant"] <- "Triazine DIA degradate"
+#criteria.values[criteria.values$Pollutant == "DACT Atrazine degradate", "Pollutant"] <- "Triazine DACT degradate"
+#criteria.values[criteria.values$Pollutant == "HA Atrazine degradate", "Pollutant"] <- "Triazine HA degradate"
 
-#the list of unmatched pollutants
-OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
-write.csv(OHA.HH.unmatched, paste0(outpath,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
+#Acifluorfen Sodium update made after deleting Sodium acifluorfen (EPA 11/24/14-ish -see email chain). 
+criteria.values <- criteria.values[criteria.values$Pollutant != "Sodium acifluorfen", ]
 
-#reconcile the names from OHA Dave Farrer's table to Kara's table names
-rename.vector <- c("1,3-dichloropropene"="Dichlorobenzene(m) 1,3",
-                   "2,4-D (Acids & Salts)"="2,4-D acids and salts",
-                   "Azinphos-methyl"="Azinphos methyl",
-                   "Copper sulfate+"="Copper",
-                   "cypermethrIn"="Cypermethrin",
-                   "dacthal (DCPA)"="Dacthal (DCPA)",
-                   "DBCP"="Dibromochloropropane",
-                   "Dicolfol"="Dicofol",
-                   "Emamectin benzoate"="Emamectin Benzoate",
-                   "Endosulfan sulfate"="Endosulfan Sulfate",
-                   "Ethyl parathion"="Ethyl Parathion",
-                   "Fenbutatin oxide"="Fenbutatin-oxide",
-                   "fipronil degradate MB45950"="MB45950 Fipronil degradate",
-                   "fipronil degradate MB46136"="MB46136 Fipronil degradate",
-                   "Fipronil**"="Fipronil",
-                   "Hexythiozox"="Hexythiazox",
-                   "Methamidaphos"="Methamidophos",
-                   "Metsulfuron methyl"="Metsulfuron",
-                   "Mevinphos (phosdrin)"="Mevinphos",
-                   "MSMA"="MSMA-calcium salt",
-                   "Paraquat dichloride"="Paraquat (dication)",
-                   "PCP"="Pentachlorophenol",
-                   "Pendimethlalin"="Pendimethalin",
-                   "Quintozene"="PCNB, Pentachloronitrobenzene (Quintozene)",
-                   "S-metolachlor"="S-Metolachlor",
-                   "Sulfometuron methyl"="Sulfometuron-methyl",
-                   "Thiophanate-methyl"="Thiophanate methyl"
-                   )
+#This update being made because the > sign isn't recognized in Excel. The >< signs are dropped here:
+criteria.values[,2:18] <- as.data.frame(apply(criteria.values[, 2:18], 2, function(x) gsub("<|>", "", x)),stringsAsFactors=FALSE)
+#colwise(function(x) {gsub("<|>","",x)}) (criteria.values)
 
-OHA.HH.criteria$Pollutant <- mapvalues(OHA.HH.criteria$Pollutant , from = names(rename.vector), to = rename.vector)
+# #THIS IS EXPERIMENTAL: trying to establish the Human Health criteria (for when we start sampling GW)----
+# #Dave Farrer's fipronil degredates take on parent compound value
+# #"*Human health benchmark for parent compound used as surrogate in absence of other source of benchmark for environmental degredate or formulation" -- DFarrer PSP Benchmarks List 5 8 2014.xlsx
+# #min.criteria[min.criteria$Pollutant == "MB46136 Fipronil degradate", "criteria.minimum.criteria.benchmark.value"] <- "0.1"
+# 
+# #This file may not reflect the most current EPA OPP or OW benchmarks, and we do know there were changes to the benchmarks since the last known download date.  
+# 
+# OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
+# #criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
+# 
+# #merge OHA.HH.criteria into criteria.values
+# criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+# 
+# #the list of unmatched pollutants
+# OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
+# #write.csv(OHA.HH.unmatched, paste0(outpath.criteria,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
+# 
+# #reconcile the names from OHA Dave Farrer's table to Kara's table names
+# rename.vector <- c(#"1,3-dichloropropene"="Dichlorobenzene(m) 1,3", #Dave says not a match
+#                    "2,4-D (Acids & Salts)"="2,4-D acids and salts",
+#                    "Azinphos-methyl"="Azinphos methyl",
+#                    "Copper sulfate+"="Copper",
+#                    "cypermethrIn"="Cypermethrin",
+#                    "dacthal (DCPA)"="Dacthal (DCPA)",
+#                    "DBCP"="Dibromochloropropane",
+#                    "Dicolfol"="Dicofol",
+#                    "Emamectin benzoate"="Emamectin Benzoate",
+#                    "Endosulfan sulfate"="Endosulfan Sulfate",
+#                    "Ethyl parathion"="Ethyl Parathion",
+#                    "Fenbutatin oxide"="Fenbutatin-oxide",
+#                    "fipronil degradate MB45950"="MB45950 Fipronil degradate",
+#                    "fipronil degradate MB46136"="MB46136 Fipronil degradate",
+#                    "Fipronil**"="Fipronil",
+#                    "Hexythiozox"="Hexythiazox",
+#                    "Methamidaphos"="Methamidophos",
+#                    #"Metsulfuron methyl"="Metsulfuron",#Dave says not a match
+#                    "Mevinphos (phosdrin)"="Mevinphos",
+#                    "MSMA"="MSMA-calcium salt",
+#                    #"Paraquat dichloride"="Paraquat (dication)",#Dave says not a match
+#                    "PCP"="Pentachlorophenol",
+#                    "Pendimethlalin"="Pendimethalin",
+#                    "Quintozene"="PCNB, Pentachloronitrobenzene (Quintozene)",
+#                    "S-metolachlor"="S-Metolachlor",
+#                    "Sulfometuron methyl"="Sulfometuron-methyl",
+#                    "Thiophanate-methyl"="Thiophanate methyl"
+#                    )
+# 
+# OHA.HH.criteria$Pollutant <- mapvalues(OHA.HH.criteria$Pollutant , from = names(rename.vector), to = rename.vector)
+# 
+# #merge OHA.HH.criteria into criteria.values
+# criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+# 
+# #DOUBLE CHECK
+# #the list of unmatched pollutants
+# OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
+# #Yes, the list of unmatched names only contains the thirteen parameters that I (and Dave corrected) couldn't find in the Criteria.csv.
+# 
+# #write the table with the new OHA columns included
+# write.csv(criteria.values.merged, paste0(outpath.criteria,"Criteria_savedon", Sys.Date(),".csv")) 
 
-#merge OHA.HH.criteria into criteria.values
-criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
-
-#DOUBLE CHECK
-#the list of unmatched pollutants
-OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
-#Yes, the list of unmatched names only contains the ten parameters that I couldn't find in the Criteria.csv.
-
-#write the table with the new OHA columns included
-write.csv(criteria.values.merged, paste0(outpath,"Criteria_savedon", Sys.Date(),".csv")) 
 
 #TESTING AQL criteria
 #Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks
 
-criteria.values.merged2 <- colwise(as.numeric) (criteria.values.merged[,2:25])
-criteria.values.merged2 <- cbind(criteria.values.merged$Pollutant, criteria.values.merged2)
+# criteria.values.merged.2 <- colwise(as.numeric) (criteria.values.merged[,2:25])
+criteria.values.merged.2<- colwise(as.numeric) (criteria.values[,2:18])
+criteria.values.merged.2 <- cbind(criteria.values$Pollutant, criteria.values.merged.2)
 
 
-
-min.state.AQL <- apply(criteria.values.merged2[ ,4:5], 1, min)
-min.other.AQL <- apply(criteria.values.merged2[ ,c(6:11, 12:13)], 1, min)
-min.AQL.1 <- ifelse(is.na(min.state.AQL==TRUE), min.other.AQL, min.state.AQL)
-min.AQL.1 <- as.data.frame(cbind(criteria.values.merged$Pollutant, min.state.AQL, min.other.AQL, min.AQL.1))
-
-min.state.HH <- apply(criteria.values.merged2[ ,c(2:3, 19)], 1, min)
-min.other.HH <- apply(criteria.values.merged2[ ,c(17:18, 22:25)], 1, min)
-min.HH.1 <- ifelse(is.na(min.state.HH==TRUE), min.other.HH, min.state.HH)
-min.HH.1 <- as.data.frame(cbind(criteria.values.merged$Pollutant, min.state.HH, min.other.HH, min.HH.1))
-
-
+min.state.AQL <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)#get min of state WQS
+min.other.AQL <- apply(criteria.values.merged.2[ ,6:13], 1, min, na.rm=TRUE)#get min of EPA benchmarks
+min.AQL.0 <- ifelse(is.infinite(min.state.AQL)==TRUE, min.other.AQL, min.state.AQL)#if there is no WQS, use the EPA, otherwise, use WQS 
+min.AQL.1 <- data.frame("Pollutant"=criteria.values$Pollutant, min.state.AQL, min.other.AQL, min.AQL.0, stringsAsFactors=FALSE)#add the Pollutant names back in
+#gsub "Inf" for "NA":
+#min.AQL.1[,2:4] <- as.data.frame(apply(min.AQL.1[, 2:4], 2, function(x) gsub(Inf, NA, x)),stringsAsFactors=FALSE)
+min.AQL.1 <- colwise(function(x) {gsub(Inf,NA,x)}) (min.AQL.1) #change Inf to NA (both lines of code unfortunately make the columns characters)
+min.AQL.1[,2:4] <- colwise(as.numeric) (min.AQL.1[,2:4]) #change numeric columns back to numeric
+#min.AQL.1$min.AQL.1 <- as.numeric(min.AQL.1$min.AQL.1)
+str(min.AQL.1)
 
 
+min.AQL.1[min.AQL.1$Pollutant == '2,4-D', 2:4] <- min.AQL.1[min.AQL.1$Pollutant == "2,4-D acids and salts", 2:4] #replace the 2,4-D benchmark with the benchmark for 2,4-D acids and salts
 
+# min.state.HH <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)
+# min.other.HH <- apply(criteria.values.merged.2[ ,6:13], 1, min, na.rm=TRUE)
+# min.HH.1 <- ifelse(is.infinite(min.state.HH)==TRUE, min.other.HH, min.state.HH)
+# min.HH.1 <- as.data.frame(cbind(criteria.values.merged$Pollutant, min.state.HH, min.other.HH, min.HH.1), stringsAsFactors=FALSE)
+# min.HH.1$min.HH.1 <- as.numeric(min.HH.1$min.HH.1)
+# str(min.HH.1)
 
+write.csv(min.AQL.1, paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".csv")) 
+# write.csv(min.HH.1, paste0(outpath.criteria,"min.Human.Health.criteria.values_savedon", Sys.Date(),".csv")) 
 
-#make a new table in "long" format
-criteria.values.melted <- melt(criteria.values, id.vars = 'Pollutant')
-#OHA.HH.criteria.melted <- melt(OHA.HH.criteria, id.vars = 'active.ingredient')
-#add saltwater or freshwater designations
-#criteria.values.melted$Matrix <- ifelse(criteria.values.melted$variable %in% c('Table 30 Toxic Substances - Saltwater Acute','Table 30 Toxic Substances - Saltwater Chronic'),
-#                                      'SW','FW')
-#add more saltwater/freshwater designations
-#t40oo <- criteria.values.melted[criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only',]
-#t40oo$Matrix <- 'SW'
-#criteria.values.melted <- rbind(criteria.values.melted, t40oo)
-#add column with the pollutant name and SW/FW designation
-#criteria.values.melted$ID <- paste(criteria.values.melted$Pollutant, criteria.values.melted$Matrix)
-#criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total inorganic SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
-#criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
-#criteria.values.melted[criteria.values.melted$ID == 'Manganese, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 100
-#hardness.pollutants <- criteria.values.melted[criteria.values.melted$value == 'hardness',] #subset pollutants that use a hardness criteria
-criteria.values.melted$value <- suppressWarnings(as.numeric(criteria.values.melted$value)) #convert from character to numeric (e.g. make blanks to NAs)
+save(min.AQL.1, file=paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".Rdata"))
 
-#remove criteria with NA or zero values
-criteria.values.melted.applicable <- criteria.values.melted[!is.na(criteria.values.melted$value),]
-criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$value != 0,]
-
-#### TESTING AQUATIC LIFE Minimum criteria value (Option 1) ####
-#Following WQPMT rules to determine min AQL value for PSP program
-#Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks
-min.AQL.criteria.values <- ddply(criteria.values.melted, .(Pollutant), function(m) {
-  m <- m[m$value != 0,] #criteria value does not equal zero (about 23 records)
-  if (all(is.na(m[m$variable %in% c('Table 30 Toxic Substances - Freshwater Acute', 
-                                    'Table 30 Toxic Substances - Freshwater Chronic'),
-                  'value']))) {
-    m <- m[m$variable %in% c('OPP Aquatic Life Benchmarks - Acute Fish',
-                        'OPP Aquatic Life Benchmarks - Chronic Fish',
-                        'OPP Aquatic Life Benchmarks - Acute Invertebrates',
-                        'OPP Aquatic Life Benchmarks - Chronic Invertebrates',
-                        'OPP Aquatic Life Benchmarks - Acute Nonvascular Plants',
-                        'OPP Aquatic Life Benchmarks - Acute Vascular Plants',
-                        'Office of Water Aquatic Life Criteria - Maximum Concentration (CMC)',
-                        'Office of Water Aquatic Life Criteria - Continuous Concentration (CCC)'),]
-    i = which(m$value == min(m$value,na.rm = TRUE)) #then index the minimum value row
-  } else {
-    m <- m[m$variable %in% c('Table 30 Toxic Substances - Freshwater Acute', 
-                             'Table 30 Toxic Substances - Freshwater Chronic'),]
-    i = which(m$value == min(m$value,na.rm = TRUE))
-  }
-  return (m[i,])
-})
-
-
-#### TESTING HUMAN HEALTH Minimum criteria value (Option 1) ####
-#Following WQPMT rules to determine min HH value for PSP program
-#Option 1 is preferring the minimum of the State WQS or OHA MCLs over the minimum of the rest of the benchmarks
-min.HH.criteria.values <- ddply(criteria.values.melted, .(Pollutant), function(m) {
-  m <- m[m$value != 0,] #criteria value does not equal zero (about 23 records)
-  if (all(is.na(m[m$variable %in% c('Table 40 Human Health Criteria for Toxic Pollutants - Water + Organism', #if these criteria are all NA
-                                    'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only', 
-                                    'OHA Maximum Contaminant Levels'),
-                  'value']))) {
-    m <- m[m$variable %in% c('EPA Human Health Benchmarks - Acute', 
-                             'EPA Human Health Benchmarks - Chronic'),]
-    i = which(m$value == min(m$value,na.rm = TRUE)) #then index the minimum value row
-  } else {
-    m <- m[m$variable %in% c('Table 40 Human Health Criteria for Toxic Pollutants - Water + Organism', #if these criteria are all NA
-                             'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only', 
-                             'OHA Maximum Contaminant Levels'),]
-    i = which(m$value == min(m$value,na.rm = TRUE))
-  }
-  return (m[i,])
-})
-#min.HH.criteria.values <- min.HH.criteria.values[min.HH.criteria.values$Matrix != "SW",]
-
-
-write.csv(min.HH.criteria.values, paste0(outpath,"min.Human.Health.criteria.values_savedon", Sys.Date(),".csv")) 
-write.csv(min.AQL.criteria.values, paste0(outpath,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".csv")) 
+# #make a new table in "long" format----
+# criteria.values.melted <- melt(criteria.values, id.vars = 'Pollutant')
+# #OHA.HH.criteria.melted <- melt(OHA.HH.criteria, id.vars = 'active.ingredient')
+# #add saltwater or freshwater designations
+# #criteria.values.melted$Matrix <- ifelse(criteria.values.melted$variable %in% c('Table 30 Toxic Substances - Saltwater Acute','Table 30 Toxic Substances - Saltwater Chronic'),
+# #                                      'SW','FW')
+# #add more saltwater/freshwater designations
+# #t40oo <- criteria.values.melted[criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only',]
+# #t40oo$Matrix <- 'SW'
+# #criteria.values.melted <- rbind(criteria.values.melted, t40oo)
+# #add column with the pollutant name and SW/FW designation
+# #criteria.values.melted$ID <- paste(criteria.values.melted$Pollutant, criteria.values.melted$Matrix)
+# #criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total inorganic SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
+# #criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
+# #criteria.values.melted[criteria.values.melted$ID == 'Manganese, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 100
+# #hardness.pollutants <- criteria.values.melted[criteria.values.melted$value == 'hardness',] #subset pollutants that use a hardness criteria
+# criteria.values.melted$value <- suppressWarnings(as.numeric(criteria.values.melted$value)) #convert from character to numeric (e.g. make blanks to NAs)
+# 
+# #remove criteria with NA or zero values
+# criteria.values.melted.applicable <- criteria.values.melted[!is.na(criteria.values.melted$value),]
+# criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$value != 0,]
+# 
+# #### TESTING AQUATIC LIFE Minimum criteria value (Option 1) ####
+# #Following WQPMT rules to determine min AQL value for PSP program
+# #Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks
+# min.AQL.criteria.values <- ddply(criteria.values.melted, .(Pollutant), function(m) {
+#   m <- m[m$value != 0,] #criteria value does not equal zero (about 23 records)
+#   if (all(is.na(m[m$variable %in% c('Table 30 Toxic Substances - Freshwater Acute', 
+#                                     'Table 30 Toxic Substances - Freshwater Chronic'),
+#                   'value']))) {
+#     m <- m[m$variable %in% c('OPP Aquatic Life Benchmarks - Acute Fish',
+#                         'OPP Aquatic Life Benchmarks - Chronic Fish',
+#                         'OPP Aquatic Life Benchmarks - Acute Invertebrates',
+#                         'OPP Aquatic Life Benchmarks - Chronic Invertebrates',
+#                         'OPP Aquatic Life Benchmarks - Acute Nonvascular Plants',
+#                         'OPP Aquatic Life Benchmarks - Acute Vascular Plants',
+#                         'Office of Water Aquatic Life Criteria - Maximum Concentration (CMC)',
+#                         'Office of Water Aquatic Life Criteria - Continuous Concentration (CCC)'),]
+#     i = which(m$value == min(m$value,na.rm = TRUE)) #then index the minimum value row
+#   } else {
+#     m <- m[m$variable %in% c('Table 30 Toxic Substances - Freshwater Acute', 
+#                              'Table 30 Toxic Substances - Freshwater Chronic'),]
+#     i = which(m$value == min(m$value,na.rm = TRUE))
+#   }
+#   return (m[i,])
+# })
+# 
+# 
+# #### TESTING HUMAN HEALTH Minimum criteria value (Option 1) ####
+# #Following WQPMT rules to determine min HH value for PSP program
+# #Option 1 is preferring the minimum of the State WQS or OHA MCLs over the minimum of the rest of the benchmarks
+# min.HH.criteria.values <- ddply(criteria.values.melted, .(Pollutant), function(m) {
+#   m <- m[m$value != 0,] #criteria value does not equal zero (about 23 records)
+#   if (all(is.na(m[m$variable %in% c('Table 40 Human Health Criteria for Toxic Pollutants - Water + Organism', #if these criteria are all NA
+#                                     'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only', 
+#                                     'OHA Maximum Contaminant Levels'),
+#                   'value']))) {
+#     m <- m[m$variable %in% c('EPA Human Health Benchmarks - Acute', 
+#                              'EPA Human Health Benchmarks - Chronic'),]
+#     i = which(m$value == min(m$value,na.rm = TRUE)) #then index the minimum value row
+#   } else {
+#     m <- m[m$variable %in% c('Table 40 Human Health Criteria for Toxic Pollutants - Water + Organism', #if these criteria are all NA
+#                              'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only', 
+#                              'OHA Maximum Contaminant Levels'),]
+#     i = which(m$value == min(m$value,na.rm = TRUE))
+#   }
+#   return (m[i,])
+# })
+# #min.HH.criteria.values <- min.HH.criteria.values[min.HH.criteria.values$Matrix != "SW",]
+# 
+# 
+# write.csv(min.HH.criteria.values, paste0(outpath.criteria,"min.Human.Health.criteria.values_savedon", Sys.Date(),".csv")) 
+# write.csv(min.AQL.criteria.values, paste0(outpath.criteria,"min.Aquatic.Life.criteria.values_savedon", Sys.Date(),".csv")) 
 
