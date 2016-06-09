@@ -85,6 +85,14 @@ criteria.values[criteria.values$Pollutant == "Endosulfan II", "Table 30 Toxic Su
 criteria.values[criteria.values$Pollutant == "4,4`-DDD", "Table 30 Toxic Substances - Freshwater Chronic"] <- "0.001"
 criteria.values[criteria.values$Pollutant == "4,4`-DDE", "Table 30 Toxic Substances - Freshwater Chronic"] <- "0.001"
 
+#Pentachlorophenol Aquatic Life Water Quality Standard Criteria
+#Freshwater are pH dependent. 
+#PSP doesn't not usually field sample pH, so use the "default" value of pH 7.8 (EPA OW display values)
+criteria.values[criteria.values$Pollutant == "Pentachlorophenol", "Table 30 Toxic Substances - Freshwater Acute"] <- "19.5" #at "default" value of pH 7.8 (EPA OW display values)
+criteria.values[criteria.values$Pollutant == "Pentachlorophenol", "Table 30 Toxic Substances - Freshwater Chronic"] <- "15" #at "default" value of pH 7.8 (EPA OW display values)
+criteria.values[criteria.values$Pollutant == "Pentachlorophenol", "Table 30 Toxic Substances - Saltwater Acute"] <- "13"
+criteria.values[criteria.values$Pollutant == "Pentachlorophenol", "Table 30 Toxic Substances - Saltwater Chronic"] <- "7.9"
+
 
 #EPA's OPP benchmarks update as of 5/14/13####
 #Not using new atrazine/simazine/desethylatrazine/deisopropylatrazine until we discuss at WQPMT on 12/16/14
@@ -107,58 +115,63 @@ criteria.values <- criteria.values[criteria.values$Pollutant != "Sodium acifluor
 criteria.values[,2:18] <- as.data.frame(apply(criteria.values[, 2:18], 2, function(x) gsub("<|>", "", x)),stringsAsFactors=FALSE)
 #colwise(function(x) {gsub("<|>","",x)}) (criteria.values)
 
-# #THIS IS EXPERIMENTAL: trying to establish the Human Health criteria (for when we start sampling GW)----
-# #Dave Farrer's fipronil degredates take on parent compound value
-# #"*Human health benchmark for parent compound used as surrogate in absence of other source of benchmark for environmental degredate or formulation" -- DFarrer PSP Benchmarks List 5 8 2014.xlsx
-# #min.criteria[min.criteria$Pollutant == "MB46136 Fipronil degradate", "criteria.minimum.criteria.benchmark.value"] <- "0.1"
-# 
-# #This file may not reflect the most current EPA OPP or OW benchmarks, and we do know there were changes to the benchmarks since the last known download date.  
-# 
-# OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
-# #criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
-# 
-# #merge OHA.HH.criteria into criteria.values
-# criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
-# 
-# #the list of unmatched pollutants
-# OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
-# #write.csv(OHA.HH.unmatched, paste0(outpath.criteria,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
-# 
-# #reconcile the names from OHA Dave Farrer's table to Kara's table names
-# rename.vector <- c(#"1,3-dichloropropene"="Dichlorobenzene(m) 1,3", #Dave says not a match
-#                    "2,4-D (Acids & Salts)"="2,4-D acids and salts",
-#                    "Azinphos-methyl"="Azinphos methyl",
-#                    "Copper sulfate+"="Copper",
-#                    "cypermethrIn"="Cypermethrin",
-#                    "dacthal (DCPA)"="Dacthal (DCPA)",
-#                    "DBCP"="Dibromochloropropane",
-#                    "Dicolfol"="Dicofol",
-#                    "Emamectin benzoate"="Emamectin Benzoate",
-#                    "Endosulfan sulfate"="Endosulfan Sulfate",
-#                    "Ethyl parathion"="Ethyl Parathion",
-#                    "Fenbutatin oxide"="Fenbutatin-oxide",
-#                    "fipronil degradate MB45950"="MB45950 Fipronil degradate",
-#                    "fipronil degradate MB46136"="MB46136 Fipronil degradate",
-#                    "Fipronil**"="Fipronil",
-#                    "Hexythiozox"="Hexythiazox",
-#                    "Methamidaphos"="Methamidophos",
-#                    #"Metsulfuron methyl"="Metsulfuron",#Dave says not a match
-#                    "Mevinphos (phosdrin)"="Mevinphos",
-#                    "MSMA"="MSMA-calcium salt",
-#                    #"Paraquat dichloride"="Paraquat (dication)",#Dave says not a match
-#                    "PCP"="Pentachlorophenol",
-#                    "Pendimethlalin"="Pendimethalin",
-#                    "Quintozene"="PCNB, Pentachloronitrobenzene (Quintozene)",
-#                    "S-metolachlor"="S-Metolachlor",
-#                    "Sulfometuron methyl"="Sulfometuron-methyl",
-#                    "Thiophanate-methyl"="Thiophanate methyl"
-#                    )
-# 
-# OHA.HH.criteria$Pollutant <- mapvalues(OHA.HH.criteria$Pollutant , from = names(rename.vector), to = rename.vector)
-# 
-# #merge OHA.HH.criteria into criteria.values
-# criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
-# 
+#THIS IS EXPERIMENTAL: trying to establish the Human Health criteria (for when we start sampling GW)----
+#Dave Farrer's fipronil degredates take on parent compound value
+#"*Human health benchmark for parent compound used as surrogate in absence of other source of benchmark for environmental degredate or formulation" -- DFarrer PSP Benchmarks List 5 8 2014.xlsx
+#min.criteria[min.criteria$Pollutant == "MB46136 Fipronil degradate", "criteria.minimum.criteria.benchmark.value"] <- "0.1"
+
+#This file may not reflect the most current EPA OPP or OW benchmarks, and we do know there were changes to the benchmarks since the last known download date.  
+
+OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
+#criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
+
+#merge OHA.HH.criteria into criteria.values
+criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+
+#the list of unmatched pollutants
+OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
+#write.csv(OHA.HH.unmatched, paste0(outpath.criteria,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
+
+#reconcile the names from OHA Dave Farrer's table to Kara's table names
+rename.vector <- c(#"1,3-dichloropropene"="Dichlorobenzene(m) 1,3", #Dave says not a match
+                   "2,4-D (Acids & Salts)"="2,4-D acids and salts",
+                   "Azinphos-methyl"="Azinphos methyl",
+                   "Copper sulfate+"="Copper",
+                   "cypermethrIn"="Cypermethrin",
+                   "dacthal (DCPA)"="Dacthal (DCPA)",
+                   "DBCP"="Dibromochloropropane",
+                   "Dicolfol"="Dicofol",
+                   "Emamectin benzoate"="Emamectin Benzoate",
+                   "Endosulfan sulfate"="Endosulfan Sulfate",
+                   "Ethyl parathion"="Ethyl Parathion",
+                   "Fenbutatin oxide"="Fenbutatin-oxide",
+                   "fipronil degradate MB45950"="MB45950 Fipronil degradate",
+                   "fipronil degradate MB46136"="MB46136 Fipronil degradate",
+                   "Fipronil**"="Fipronil",
+                   "Hexythiozox"="Hexythiazox",
+                   "Methamidaphos"="Methamidophos",
+                   #"Metsulfuron methyl"="Metsulfuron",#Dave says not a match
+                   "Mevinphos (phosdrin)"="Mevinphos",
+                   "MSMA"="MSMA-calcium salt",
+                   #"Paraquat dichloride"="Paraquat (dication)",#Dave says not a match
+                   "PCP"="Pentachlorophenol",
+                   "Pendimethlalin"="Pendimethalin",
+                   "Quintozene"="PCNB, Pentachloronitrobenzene (Quintozene)",
+                   "S-metolachlor"="S-Metolachlor",
+                   "Sulfometuron methyl"="Sulfometuron-methyl",
+                   "Thiophanate-methyl"="Thiophanate methyl"
+                   )
+
+OHA.HH.criteria$Pollutant <- mapvalues(OHA.HH.criteria$Pollutant , from = names(rename.vector), to = rename.vector)
+OHA.HH.criteria <- within(OHA.HH.criteria, rm(OHA.MCL, DEQ.HH.WQS, EPA.HH))
+OHA.HH.criteria <- rename(OHA.HH.criteria, c('EPA.LTHA' = 'Office of Water Lifetime Health Advisory', 
+                                             'USGS.HBSL.Low' = 'USGS Health Based Screening Level Low', 
+                                             'USGS.HBSL.High' = 'USGS Health Based Screening Level High', 
+                                             'EPA.RSL' = 'EPA Region 3 Superfund Clean-up Program Regional Screening Level'))
+
+#merge OHA.HH.criteria into criteria.values
+criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+
 # #DOUBLE CHECK
 # #the list of unmatched pollutants
 # OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
@@ -172,12 +185,78 @@ criteria.values[,2:18] <- as.data.frame(apply(criteria.values[, 2:18], 2, functi
 #Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks
 
 # criteria.values.merged.2 <- colwise(as.numeric) (criteria.values.merged[,2:25])
-criteria.values.merged.2<- colwise(as.numeric) (criteria.values[,2:18])
-criteria.values.merged.2 <- cbind(criteria.values$Pollutant, criteria.values.merged.2)
+#criteria.values.merged.2<- colwise(as.numeric) (criteria.values[,2:18])
+#criteria.values.merged.2 <- cbind(criteria.values$Pollutant, criteria.values.merged.2)
+
+criteria.values.melted <- melt(criteria.values.merged, id.vars = 'Pollutant')
+criteria.values.melted$Matrix <- ifelse(criteria.values.melted$variable %in% c('Table 30 Toxic Substances - Saltwater Acute','Table 30 Toxic Substances - Saltwater Chronic'),
+                                        'SW','FW')
+t40oo <- criteria.values.melted[criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only',]
+t40oo$Matrix <- 'SW'
+criteria.values.melted <- rbind(criteria.values.melted, t40oo)
+criteria.values.melted$ID <- paste(criteria.values.melted$Pollutant, criteria.values.melted$Matrix)
+criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total inorganic SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
+criteria.values.melted[criteria.values.melted$ID == 'Arsenic, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 1
+criteria.values.melted[criteria.values.melted$ID == 'Manganese, Total recoverable SW' & criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only','value'] <- 100
+hardness.pollutants <- criteria.values.melted[criteria.values.melted$value == 'hardness',]
+criteria.values.melted.nonnum <- criteria.values.melted
+criteria.values.melted$value <- suppressWarnings(as.numeric(criteria.values.melted$value))
+
+criteria.values.melted.applicable <- criteria.values.melted[!is.na(criteria.values.melted$value),]
+criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$value != 0,]
+
+# #Checking if OHA.MCL is equivalent to Kara's MCL's
+# oha <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% c('OHA Maximum Contaminant Levels','OHA.MCL'),]
+# oha.casted <- dcast(oha)
+# oha.casted <- dcast(oha, Pollutant ~ variable, value.var = "value")
+
+#Get minimums.  If/then statements?  Maybe subset out maximums? 
+
+
+
+
+
+
 
 
 min.state.AQL <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)#get min of state WQS
-min.other.AQL <- apply(criteria.values.merged.2[ ,6:13], 1, min, na.rm=TRUE)#get min of EPA benchmarks
+
+# ############TEST##########
+# DF <- data.frame("V 1"=c(2,8,1),V2=c(7,3,5),V3=c(9,6,4), V4=c(0,0,1))
+# colnames(DF)[apply(DF,1,which.max)]
+# colnames(DF)[apply(DF,1,which.min)]
+# DF <- data.frame(V1=c(2,8,1),V2=c(7,3,5),V3=c(7,6,4))
+# #start here
+# apply(DF,1,function(x) which(x==min(x)))
+# DF$name <- apply(DF,1,function(x) which(x==min(x)))
+# 
+# criteria.values.merged.2$min.state.AQL.name <- apply(criteria.values.merged.2[ ,4:5],1,function(x) which(x==min(x)))
+# 
+# 
+# DF <- criteria.values.merged.2[ ,4:5]
+# DF$min <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)#get min of state WQS
+# DF$name <- apply(DF,1,function(x) which(x==min(x)))
+# View(DF)
+# 
+# df1<-data.frame(a=sample(1:50,10),b=sample(1:50,10),c=sample(1:50,10))
+# colnames(df1)[1]
+# colnames(df1)[apply(df1,1,which.min)]
+# colnames(df1)[apply(df1,1,which.min)]
+# 
+# colnames(df1[apply(df1,1,which.max)])
+# 
+# 
+# colnames(df1[1])
+# colnames(criteria.values.merged.2[(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)])
+# 
+# 
+# library(reshape)
+# mmm <- melt(criteria.values.merged.2)
+# 
+# ##########################
+
+
+min.other.AQL <- apply(criteria.values.merged.2[ ,6:13], 1, min, na.rm=TRUE) #get min of EPA benchmarks
 min.AQL.0 <- ifelse(is.infinite(min.state.AQL)==TRUE, min.other.AQL, min.state.AQL)#if there is no WQS, use the EPA, otherwise, use WQS 
 min.AQL.1 <- data.frame("Pollutant"=criteria.values$Pollutant, min.state.AQL, min.other.AQL, min.AQL.0, stringsAsFactors=FALSE)#add the Pollutant names back in
 #gsub "Inf" for "NA":
@@ -186,7 +265,6 @@ min.AQL.1 <- colwise(function(x) {gsub(Inf,NA,x)}) (min.AQL.1) #change Inf to NA
 min.AQL.1[,2:4] <- colwise(as.numeric) (min.AQL.1[,2:4]) #change numeric columns back to numeric
 #min.AQL.1$min.AQL.1 <- as.numeric(min.AQL.1$min.AQL.1)
 str(min.AQL.1)
-
 
 min.AQL.1[min.AQL.1$Pollutant == '2,4-D', 2:4] <- min.AQL.1[min.AQL.1$Pollutant == "2,4-D acids and salts", 2:4] #replace the 2,4-D benchmark with the benchmark for 2,4-D acids and salts
 
