@@ -9,6 +9,7 @@
 #install.packages("Hmisc")
 
 require(plyr)
+library(dplyr)
 require(Hmisc)
 require(reshape2)
 require(stringr)
@@ -125,12 +126,13 @@ criteria.values[,2:18] <- as.data.frame(apply(criteria.values[, 2:18], 2, functi
 OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
 #criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
 
-#merge OHA.HH.criteria into criteria.values
-criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
-
-#the list of unmatched pollutants
-OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
-#write.csv(OHA.HH.unmatched, paste0(outpath.criteria,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
+# Commenting out because we only needed to do once intially. 
+# #merge OHA.HH.criteria into criteria.values
+# criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pollutant", all=TRUE)
+# 
+# #the list of unmatched pollutants
+# OHA.HH.unmatched <- criteria.values.merged[is.na(criteria.values.merged$OPP.Aquatic.Life.Benchmarks.Acute.Fish == TRUE),]
+# #write.csv(OHA.HH.unmatched, paste0(outpath.criteria,"OHA.HH.unmatched_savedon", Sys.Date(),".csv")) 
 
 #reconcile the names from OHA Dave Farrer's table to Kara's table names
 rename.vector <- c(#"1,3-dichloropropene"="Dichlorobenzene(m) 1,3", #Dave says not a match
@@ -210,14 +212,65 @@ criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.
 # oha.casted <- dcast(oha)
 # oha.casted <- dcast(oha, Pollutant ~ variable, value.var = "value")
 
-#Get minimums.  If/then statements?  Maybe subset out maximums? 
+#Get minimums. 
+criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$Matrix == 'FW',]
+state.AQL <-  c('Table 30 Toxic Substances - Freshwater Acute',                           
+                'Table 30 Toxic Substances - Freshwater Chronic')
+benchmarks.AQL <- c('OPP.Aquatic.Life.Benchmarks.Acute.Fish',                                
+                    'OPP Aquatic Life Benchmarks - Chronic Fish',                            
+                    'OPP Aquatic Life Benchmarks - Acute Invertebrates',                     
+                    'OPP Aquatic Life Benchmarks - Chronic Invertebrates',                   
+                    'OPP Aquatic Life Benchmarks - Acute Nonvascular Plants',                
+                    'OPP Aquatic Life Benchmarks - Acute Vascular Plants',                   
+                    'Office of Water Aquatic Life Criteria - Maximum Concentration (CMC)',   
+                    'Office of Water Aquatic Life Criteria - Continuous Concentration (CCC)')
+state.HH <- c('Table 40 Human Health Criteria for Toxic Pollutants - Water + Organism', 
+              'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only', 
+              'OHA Maximum Contaminant Levels')
+benchmarks.HH <- c('EPA Human Health Benchmarks - Acute',                                   
+                   'EPA Human Health Benchmarks - Chronic',                                 
+                   'Office of Water Lifetime Health Advisory',                              
+                   'USGS Health Based Screening Level Low',                                 
+                   'USGS Health Based Screening Level High',                                
+                   'EPA Region 3 Superfund Clean-up Program Regional Screening Level')
 
+criteria.values.melted.applicable.state.AQL <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% state.AQL,]
+criteria.values.melted.applicable.benchmarks.AQL <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% benchmarks.AQL,]
+criteria.values.melted.applicable.state.HH <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% state.HH,]
+criteria.values.melted.applicable.benchmarks.HH <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% benchmarks.HH,]
 
+mins.state.AQL <- criteria.values.melted.applicable.state.AQL %>% 
+  group_by(Pollutant) %>% 
+  slice(which(value %in% sort(value)[1])) %>% 
+  as.data.frame
 
+mins.benchmarks.AQL <- criteria.values.melted.applicable.benchmarks.AQL %>% 
+  group_by(Pollutant) %>% 
+  slice(which(value %in% sort(value)[1])) %>% 
+  as.data.frame
 
+cvma_grouped.state.HH <- criteria.values.melted.applicable.state.HH %>% group_by(Pollutant)
+mins.state.HH <- cvma_grouped.state.HH %>% slice(which(value %in% sort(value)[1])) %>% as.data.frame
 
+cvma_grouped.benchmarks.HH <- criteria.values.melted.applicable.benchmarks.HH %>% group_by(Pollutant)
+mins.benchmarks.HH <- cvma_grouped.benchmarks.HH %>% slice(which(value %in% sort(value)[1])) %>% as.data.frame
 
+  ppp <- unique(c(mins.state.AQL$Pollutant, mins.benchmarks.AQL$Pollutant))
+  for (i in 1:length(ppp)) {
+    if (ppp[i] %in% mins.state.AQL$Pollutant) {
+      to_add <- mins.state.AQL[mins.state.AQL$Pollutant %in% ppp[i],]
+    } else {
+      to_add <- mins.benchmarks.AQL[mins.benchmarks.AQL$Pollutant %in% ppp[i],]
+    }
+    if (i == 1) {
+      min.AQL <- to_add    
+    } else {
+      min.AQL <- rbind(min.AQL, to_add)
+    }
+  }
 
+  concat <- min.AQL %>% group_by(Pollutant) %>% summarise(min.AQL.value = unique(value), min.AQL.criteria = paste(variable, collapse = ", "))
+  megatable <- merge(megatable, concat, by = 'Pollutant', all.x = TRUE)
 
 min.state.AQL <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)#get min of state WQS
 
