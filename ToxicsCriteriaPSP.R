@@ -37,7 +37,8 @@ criteria.values <- criteria.values[!duplicated(criteria.values$Pollutant),]
 OHA.HH.criteria <- OHA.HH.criteria[!duplicated(OHA.HH.criteria$active.ingredient),]
 
 #rename the fields
-criteria.values <- rename(criteria.values , replace = c('Freshwater.Acute.Criteria..CMC..ug.L' = 'Table 30 Toxic Substances - Freshwater Acute',
+criteria.values <- plyr::rename(criteria.values , replace = c('Freshwater.Acute.Criteria..CMC..ug.L' = 'Table 30 Toxic Substances - Freshwater Acute'
+                                                        ,
                                                         'Freshwater.Chronic.Criteria..CCC..ug.L' = 'Table 30 Toxic Substances - Freshwater Chronic',
                                                         "Freshwater.Fish.Acute.1" = 'OPP.Aquatic.Life.Benchmarks.Acute.Fish',
                                                         "Freshwater.Fish.Chronic.2" = 'OPP Aquatic Life Benchmarks - Chronic Fish',
@@ -54,7 +55,7 @@ criteria.values <- rename(criteria.values , replace = c('Freshwater.Acute.Criter
                                                         "OR.MCLs" = 'OHA Maximum Contaminant Levels',
                                                         "Acute.One.Day.HHBP..ppb." = 'EPA Human Health Benchmarks - Acute', 
                                                         "Chronic..Lifetime.HHBP..ppb." = 'EPA Human Health Benchmarks - Chronic'))
-OHA.HH.criteria <- rename(OHA.HH.criteria , replace = c('active.ingredient'= 'Pollutant',
+OHA.HH.criteria <- plyr::rename(OHA.HH.criteria , replace = c('active.ingredient'= 'Pollutant',
                                                         'I..Maximum.Contaminant.Level..MCL...µg.L.'= 'OHA.MCL',
                                                         'II..DEQ.HH.Bencharks..Table.40...µg.L.' = 'DEQ.HH.WQS',
                                                         'III..EPA.Human.Health.Benchmark.for.Pesticides..HHBP...µg.L.' = 'EPA.HH',
@@ -116,12 +117,14 @@ criteria.values <- criteria.values[criteria.values$Pollutant != "Sodium acifluor
 criteria.values[,2:18] <- as.data.frame(apply(criteria.values[, 2:18], 2, function(x) gsub("<|>", "", x)),stringsAsFactors=FALSE)
 #colwise(function(x) {gsub("<|>","",x)}) (criteria.values)
 
+##############
 #THIS IS EXPERIMENTAL: trying to establish the Human Health criteria (for when we start sampling GW)----
 #Dave Farrer's fipronil degredates take on parent compound value
 #"*Human health benchmark for parent compound used as surrogate in absence of other source of benchmark for environmental degredate or formulation" -- DFarrer PSP Benchmarks List 5 8 2014.xlsx
 #min.criteria[min.criteria$Pollutant == "MB46136 Fipronil degradate", "criteria.minimum.criteria.benchmark.value"] <- "0.1"
 
 #This file may not reflect the most current EPA OPP or OW benchmarks, and we do know there were changes to the benchmarks since the last known download date.  
+##############
 
 OHA.HH.criteria$Pollutant <- capitalize(OHA.HH.criteria$Pollutant)
 #criteria.values[criteria.values$Pollutant == "Chlorpyrifos (Dursban)", "Pollutant"] <- "Chlorpyrifos"
@@ -163,10 +166,10 @@ rename.vector <- c(#"1,3-dichloropropene"="Dichlorobenzene(m) 1,3", #Dave says n
                    "Sulfometuron methyl"="Sulfometuron-methyl",
                    "Thiophanate-methyl"="Thiophanate methyl"
                    )
-
 OHA.HH.criteria$Pollutant <- mapvalues(OHA.HH.criteria$Pollutant , from = names(rename.vector), to = rename.vector)
 OHA.HH.criteria <- within(OHA.HH.criteria, rm(OHA.MCL, DEQ.HH.WQS, EPA.HH))
-OHA.HH.criteria <- rename(OHA.HH.criteria, c('EPA.LTHA' = 'Office of Water Lifetime Health Advisory', 
+#rename table names to meaningful names
+OHA.HH.criteria <- plyr::rename(OHA.HH.criteria, c('EPA.LTHA' = 'Office of Water Lifetime Health Advisory', 
                                              'USGS.HBSL.Low' = 'USGS Health Based Screening Level Low', 
                                              'USGS.HBSL.High' = 'USGS Health Based Screening Level High', 
                                              'EPA.RSL' = 'EPA Region 3 Superfund Clean-up Program Regional Screening Level'))
@@ -182,17 +185,12 @@ criteria.values.merged <- merge(x= criteria.values, y= OHA.HH.criteria, by= "Pol
 # #write the table with the new OHA columns included
 # write.csv(criteria.values.merged, paste0(outpath.criteria,"Criteria_savedon", Sys.Date(),".csv")) 
 
-
-#TESTING AQL criteria
-#Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks
-
-# criteria.values.merged.2 <- colwise(as.numeric) (criteria.values.merged[,2:25])
-#criteria.values.merged.2<- colwise(as.numeric) (criteria.values[,2:18])
-#criteria.values.merged.2 <- cbind(criteria.values$Pollutant, criteria.values.merged.2)
-
+#melt all the benchmarks and criteria
 criteria.values.melted <- melt(criteria.values.merged, id.vars = 'Pollutant')
+#Add a variable to distinguish saltwater criteria vs. freshwater criteria.
 criteria.values.melted$Matrix <- ifelse(criteria.values.melted$variable %in% c('Table 30 Toxic Substances - Saltwater Acute','Table 30 Toxic Substances - Saltwater Chronic'),
                                         'SW','FW')
+#Add more criteria used in the Integrated Report(in case need them in the future)
 t40oo <- criteria.values.melted[criteria.values.melted$variable == 'Table 40 Human Health Criteria for Toxic Pollutants - Organism Only',]
 t40oo$Matrix <- 'SW'
 criteria.values.melted <- rbind(criteria.values.melted, t40oo)
@@ -203,7 +201,7 @@ criteria.values.melted[criteria.values.melted$ID == 'Manganese, Total recoverabl
 hardness.pollutants <- criteria.values.melted[criteria.values.melted$value == 'hardness',]
 criteria.values.melted.nonnum <- criteria.values.melted
 criteria.values.melted$value <- suppressWarnings(as.numeric(criteria.values.melted$value))
-
+#filter only benchmarks and criteria that have values
 criteria.values.melted.applicable <- criteria.values.melted[!is.na(criteria.values.melted$value),]
 criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$value != 0,]
 
@@ -212,8 +210,11 @@ criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.
 # oha.casted <- dcast(oha)
 # oha.casted <- dcast(oha, Pollutant ~ variable, value.var = "value")
 
-#Get minimums. 
+#Get minimums. #Get the applicable benchmark or criteria. 
+#Option 1 is preferring the minimum of the State WQS over the minimum of the rest of the benchmarks 
+#PSP only needs Freshwater benchmarks/criteria at this time (J Crown 7/12/16)
 criteria.values.melted.applicable <- criteria.values.melted.applicable[criteria.values.melted.applicable$Matrix == 'FW',]
+#determine state criteria vs. federal benchmarks and Aquatic Life vs. Human Health
 state.AQL <-  c('Table 30 Toxic Substances - Freshwater Acute',                           
                 'Table 30 Toxic Substances - Freshwater Chronic')
 benchmarks.AQL <- c('OPP.Aquatic.Life.Benchmarks.Acute.Fish',                                
@@ -233,44 +234,75 @@ benchmarks.HH <- c('EPA Human Health Benchmarks - Acute',
                    'USGS Health Based Screening Level Low',                                 
                    'USGS Health Based Screening Level High',                                
                    'EPA Region 3 Superfund Clean-up Program Regional Screening Level')
-
+#subset the data by state vs. federal and aquatic life vs. human health. 
 criteria.values.melted.applicable.state.AQL <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% state.AQL,]
 criteria.values.melted.applicable.benchmarks.AQL <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% benchmarks.AQL,]
 criteria.values.melted.applicable.state.HH <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% state.HH,]
 criteria.values.melted.applicable.benchmarks.HH <- criteria.values.melted.applicable[criteria.values.melted.applicable$variable %in% benchmarks.HH,]
 
+#Aquatic Life: find the applicable minimum benchmark(s)/criterion(a)
+#take minimum(s) of state AQL criteria
 mins.state.AQL <- criteria.values.melted.applicable.state.AQL %>% 
   group_by(Pollutant) %>% 
   slice(which(value %in% sort(value)[1])) %>% 
   as.data.frame
-
+#take minimum(s) of federal AQL benchmarks 
 mins.benchmarks.AQL <- criteria.values.melted.applicable.benchmarks.AQL %>% 
   group_by(Pollutant) %>% 
   slice(which(value %in% sort(value)[1])) %>% 
   as.data.frame
-
-cvma_grouped.state.HH <- criteria.values.melted.applicable.state.HH %>% group_by(Pollutant)
-mins.state.HH <- cvma_grouped.state.HH %>% slice(which(value %in% sort(value)[1])) %>% as.data.frame
-
-cvma_grouped.benchmarks.HH <- criteria.values.melted.applicable.benchmarks.HH %>% group_by(Pollutant)
-mins.benchmarks.HH <- cvma_grouped.benchmarks.HH %>% slice(which(value %in% sort(value)[1])) %>% as.data.frame
-
-  ppp <- unique(c(mins.state.AQL$Pollutant, mins.benchmarks.AQL$Pollutant))
-  for (i in 1:length(ppp)) {
-    if (ppp[i] %in% mins.state.AQL$Pollutant) {
-      to_add <- mins.state.AQL[mins.state.AQL$Pollutant %in% ppp[i],]
-    } else {
-      to_add <- mins.benchmarks.AQL[mins.benchmarks.AQL$Pollutant %in% ppp[i],]
-    }
-    if (i == 1) {
-      min.AQL <- to_add    
-    } else {
-      min.AQL <- rbind(min.AQL, to_add)
-    }
+#create table (min.AQL) that takes the minimum(s) of the state AQL criteria if it exists, otherwise take the minimum of the federal AQL benchmarks. 
+ppp <- unique(c(mins.state.AQL$Pollutant, mins.benchmarks.AQL$Pollutant))
+for (i in 1:length(ppp)) {
+  if (ppp[i] %in% mins.state.AQL$Pollutant) {
+    to_add <- mins.state.AQL[mins.state.AQL$Pollutant %in% ppp[i],]
+  } else {
+    to_add <- mins.benchmarks.AQL[mins.benchmarks.AQL$Pollutant %in% ppp[i],]
   }
+  if (i == 1) {
+    min.AQL <- to_add    
+  } else {
+    min.AQL <- rbind(min.AQL, to_add)
+  }
+}
+#create the final AQL table with one applicable benchmark/criterion per pollutant. 
+#concatenate the minimums to preserve the names of the minimum benchmark/criteria values. 
+concat.AQL <- min.AQL %>% group_by(Pollutant) %>% summarise(min.AQL.value = unique(value), min.AQL.criteria = paste(variable, collapse = ", "))
 
-  concat <- min.AQL %>% group_by(Pollutant) %>% summarise(min.AQL.value = unique(value), min.AQL.criteria = paste(variable, collapse = ", "))
-  megatable <- merge(megatable, concat, by = 'Pollutant', all.x = TRUE)
+#Human Health: find the applicable minimum benchmark(s)/criterion(a)
+#take minimum(s) of state HH criteria
+mins.state.HH <- criteria.values.melted.applicable.state.HH %>% 
+  group_by(Pollutant) %>%
+  slice(which(value %in% sort(value)[1])) %>% 
+  as.data.frame
+#take minimum(s) of federal HH benchmarks
+mins.benchmarks.HH  <- criteria.values.melted.applicable.benchmarks.HH %>% 
+  group_by(Pollutant)%>% 
+  slice(which(value %in% sort(value)[1])) %>% 
+  as.data.frame
+#create table (min.HH) that takes the minimum(s) of the state HH criteria if it exists, otherwise take the minimum of the federal HH benchmarks. 
+ppp <- unique(c(mins.state.HH$Pollutant, mins.benchmarks.HH$Pollutant))
+for (i in 1:length(ppp)) {
+  if (ppp[i] %in% mins.state.HH$Pollutant) {
+    to_add <- mins.state.HH[mins.state.HH$Pollutant %in% ppp[i],]
+  } else {
+    to_add <- mins.benchmarks.HH[mins.benchmarks.HH$Pollutant %in% ppp[i],]
+  }
+  if (i == 1) {
+    min.HH <- to_add    
+  } else {
+    min.HH <- rbind(min.HH, to_add)
+  }
+}
+#create the final HH table with one applicable benchmark/criterion value per pollutant. 
+#concatenate the minimums to preserve the names of the minimum benchmark/criteria value(s). 
+concat.HH <- min.HH %>% group_by(Pollutant) %>% summarise(min.HH.value = unique(value), min.HH.criteria = paste(variable, collapse = ", "))
+
+
+
+  ###  megatable <- merge(megatable, concat, by = 'Pollutant', all.x = TRUE)
+
+
 
 min.state.AQL <- apply(criteria.values.merged.2[ ,4:5], 1, min, na.rm=TRUE)#get min of state WQS
 
